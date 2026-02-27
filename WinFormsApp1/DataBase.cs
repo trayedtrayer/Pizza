@@ -59,6 +59,7 @@ namespace WinFormsApp1
                 get { return _price; }
                 set { _price = value; }
             }
+            [Browsable(false)]
             public int Price => price;
             public virtual bool Matches(string text)
             {
@@ -80,8 +81,6 @@ namespace WinFormsApp1
                 get { return _name; }
                 set { _name = value; }
             }
-            [DisplayName("Выбран")]
-            public bool isSelected { get; set; }
             public Ingridient() { }
 
             public Ingridient(string nameIngridient, int price)
@@ -98,8 +97,6 @@ namespace WinFormsApp1
                 get { return _name; }
                 set { _name = value; }
             }
-            [DisplayName("Выбран")]
-            public bool isSelected { get; set; }
 
             public PizzaMain() { }
 
