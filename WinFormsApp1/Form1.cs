@@ -1,267 +1,26 @@
 ﻿using System.ComponentModel;
-using static WinFormsApp1.Form1;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Diagnostics;
+using System.Xml.Linq;
+using static WinFormsApp1.Form1;
+using static WinFormsApp1.DataBase;
 
 namespace WinFormsApp1
 {
     public partial class Form1 : Form
     {
-        //создание пиццы из доступных, фильтрация, красивые названия, каждая половинка свой бортик, тыкнуть guid куда нить
+        //красивые названия
         int savedIndex;
         bool isCombo = false;
         Pizza tempForEdit;
-        BindingSource ingredientsSource = new BindingSource();
-        BindingSource mainSource = new BindingSource();
-        BindingSource pizzaSource = new BindingSource();
-        BindingSource borderSource = new BindingSource();
-        BindingSource orderSource = new BindingSource();
-        BindingSource pizzaInOrderSource = new BindingSource();
-
-        BindingList<Ingridient> ingridients = new BindingList<Ingridient>();
-        BindingList<PizzaMain> pizzaMain = new BindingList<PizzaMain>();
-        BindingList<Pizza> pizza = new BindingList<Pizza>();
-        BindingList<Border> borders = new BindingList<Border>();
-        BindingList<Order> orders = new BindingList<Order>();
-        BindingList<PizzaInOrder> pizzasInOrder = new BindingList<PizzaInOrder>();
-        public class Ingridient
-        {
-            public override string ToString()
-            {
-                return nameIngridient ?? "";
-            }
-            private string _nameIngridient;
-            [DisplayName("Название Ингредиента")]
-            public string nameIngridient
-            {
-                get { return _nameIngridient; }
-                set { _nameIngridient = value; }
-            }
-            private int _price;
-            [DisplayName("Цена в руб.")]
-            public int price
-            {
-                get { return _price; }
-                set { _price = value; }
-            }
-            [DisplayName("Выбран")]
-            public bool isSelected { get; set; }
-            public Ingridient() { }
-
-            public Ingridient(string nameIngridient, int price)
-            {
-                this.nameIngridient = nameIngridient;
-                this.price = price;
-            }
-        }
-        public class PizzaMain
-        {
-            public override string ToString()
-            {
-                return namePizzaMain ?? "";
-            }
-            private string _namePizzaMain;
-            [DisplayName("Название теста")]
-            public string namePizzaMain
-            {
-                get { return _namePizzaMain; }
-                set { _namePizzaMain = value; }
-            }
-            private int _price;
-            [DisplayName("Цена в руб.")]
-            public int price
-            {
-                get { return _price; }
-                set { _price = value; }
-            }
-            [DisplayName("Выбран")]
-            public bool isSelected { get; set; }
-
-            public PizzaMain() { }
-
-            public PizzaMain(string namePizzaMain, int price)
-            {
-                this.namePizzaMain = namePizzaMain;
-                this.price = price;
-            }
-        }
-
-        public class Border
-        {
-            public override string ToString()
-            {
-                return nameBorder ?? "";
-            }
-            string _nameBorder;
-            [DisplayName("Название бортика")]
-            public string nameBorder
-            {
-                get { return _nameBorder; }
-                set { _nameBorder = value; }
-            }
-            [DisplayName("Стоимость бортика")]
-            public int price { get; set; }
-            public Border(string namePizzaMain, int price)
-            {
-                this.nameBorder = namePizzaMain;
-                this.price = price;
-            }
-            public Border() { }
-        }
-
-        public class PizzaInOrder()
-        {
-            public Pizza pizzaA { get; set; }
-            public Pizza pizzaB { get; set; }
-            public bool isDoubleIngredients { get; set; }
-            public PizzaSize sizePizza { get; set; }
-            public int countPizza { get; set; } = 1;
-            public int priceFor
-            {
-                get
-                {
-                    int sum = 0;
-                    if (pizzaB != null)
-                    {
-                        sum = PriceChangeDouble();
-                    }
-                    else
-                    {
-                        sum = PriceChangeSolo();
-                    }
-                    return sum;
-                }
-            }
-
-            private int PriceChangeSolo()
-            {
-                int basicPrice = pizzaA.price;
-                int multiplier = (int)sizePizza+1;
-                int dopIngr = isDoubleIngredients ? pizzaA.ReturnIngredientsPrice() * 1 : 0;
-                return basicPrice + dopIngr;
-            }
-            private int PriceChangeDouble()
-            {
-                int basicPrice = pizzaA.price + pizzaB.price;
-                int multiplier = (int)sizePizza+1;
-                int dopIngrA = isDoubleIngredients ? pizzaA.ReturnIngredientsPrice() * 1 : 0;
-                int dopIngrB = isDoubleIngredients ? pizzaB.ReturnIngredientsPrice() * 1 : 0;
-                return basicPrice * multiplier + dopIngrA + dopIngrB;
-            }
-        }
-
-        public class Order
-        {
-            public int numberOrder { get; set; }
-            public List<PizzaInOrder> pizzas { get; set; } = new List<PizzaInOrder>();
-            public int priceOrder => pizzas.Sum(p => p.priceFor * p.countPizza);
-            public string comment { get; set; } = "";
-            public DateTime timeOrder { get; set; } = DateTime.Now;
-            public DateTime? delayed { get; set; }
-            public bool isDelayed => delayed.HasValue;
-        }
-
-        public class Pizza
-        {
-            public override string ToString()
-            {
-                return namePizza ?? "";
-            }
-            private string _namePizza;
-            [DisplayName("Название пиццы")]
-            public string namePizza
-            {
-                get { return _namePizza; }
-                set { _namePizza = value; }
-            }
-            [DisplayName("Цена в руб.")]
-            public int price
-            {
-                get
-                {
-                    int sum = 0;
-                    foreach (var _ingridient in ingridientsPizza)
-                    {
-                        sum += _ingridient.price;
-                    }
-                    sum += pizzaBorder.price;
-                    sum += pizzasMain.price;
-                    return sum;
-                }
-            }
-            public List<Ingridient> ingridientsPizza { get; set; } = new List<Ingridient>();
-            [DisplayName("Состав")]
-            public string ingredientsDisplay
-            {
-                get
-                {
-                    if (ingridientsPizza == null || ingridientsPizza.Count == 0)
-                    {
-                        return "Без ингредиентов";
-                    }
-                    string res = "";
-                    foreach (var ingredient in ingridientsPizza)
-                    {
-                        res += (res == "" ? "" : ", ") + ingredient.nameIngridient;
-                    }
-                    return res;
-                }
-            }
-            [DisplayName("Тесто")]
-            public string pizzaMainDisplay
-            {
-                get
-                {
-                    return pizzasMain.namePizzaMain;
-                }
-            }
-            [Browsable(false)]
-            public PizzaMain pizzasMain { get; set; } = new PizzaMain();
-            [Browsable(false)]
-            public Border pizzaBorder { get; set; } = new Border();
-            [DisplayName("Бортик")]
-            public string nameBorder
-            {
-                get
-                {
-                    return pizzaBorder.nameBorder;
-                }
-            }
-            [Browsable(false)]
-            public List<Border> borderList { get; set; } = new List<Border>();
-
-            public int ReturnIngredientsPrice()
-            {
-                int sum = 0;
-                foreach (var _ingridient in ingridientsPizza)
-                {
-                    sum += _ingridient.price;
-                }
-                return sum;
-            }
-
-            public Pizza() { }
-
-            public Pizza(string namePizza, List<Ingridient> ingridientsPizza, PizzaMain pizzasMain, Border pizzaBorder)
-            {
-                this.namePizza = namePizza;
-                this.ingridientsPizza = ingridientsPizza;
-                this.pizzasMain = pizzasMain;
-                this.pizzaBorder = pizzaBorder;
-            }
-        }
-
-        public enum PizzaSize
-        {
-            Small = 0,
-            Medium = 1,
-            Large = 2,
-        }
 
         public Form1()
         {
             InitializeComponent();
+            dateTimePicker1.Format = DateTimePickerFormat.Custom;
+            dateTimePicker1.CustomFormat = "dd.MM.yyyy HH:mm";
+            dateTimePicker1.ShowUpDown = true;
             ingridients = new BindingList<Ingridient>()
             {
                 new Ingridient("Мука", 15),
@@ -300,15 +59,66 @@ namespace WinFormsApp1
             {
                 new Pizza("Маргарита",
                     new List<Ingridient> { ingridients[6], ingridients[7]},
-                    pizzaMain[1], borders[0]),
+                    pizzaMain[1], borders[0], new List<Border> { borders[0],borders[2] }),
                 new Pizza("Пепперони",
                     new List<Ingridient> { ingridients[6], ingridients[7], ingridients[12] },
-                    pizzaMain[0], borders[1]),
+                    pizzaMain[0], borders[1], new List<Border> { borders[1],borders[2] }),
                 new Pizza("4 Сыра",
                     new List<Ingridient> { ingridients[7], ingridients[8], ingridients[9], ingridients[10] },
-                    pizzaMain[2], borders[2])
+                    pizzaMain[2], borders[2], new List<Border> { borders[1],borders[2] })
+            };
+            var order1 = new Order
+            {
+                timeOrder = DateTime.Now.Date.AddHours(10),    // сегодня 10:00
+                comment = "Самовывоз",
+                pizzas = new List<PizzaInOrder>
+            {
+                new PizzaInOrder
+                {
+                    pizzaA = pizza[0],
+                    pizzaB = null,
+                    countPizza = 2,
+                }
+            }
             };
 
+            var order2 = new Order
+            {
+                timeOrder = DateTime.Now.Date.AddDays(-1).AddHours(19), // вчера 19:00
+                comment = "Доставка, без лука",
+                pizzas = new List<PizzaInOrder>
+                {
+                    new PizzaInOrder
+                    {
+                        pizzaA = pizza[1],
+                        pizzaB = null,
+                        countPizza = 1,
+                    },
+                    new PizzaInOrder
+                    {
+                        pizzaA = pizza[2],
+                        pizzaB = null,
+                        countPizza = 1,
+                    }
+                }
+            };
+
+            var order3 = new Order
+            {
+                timeOrder = DateTime.Now.Date.AddDays(-2).AddHours(14),
+                comment = "Офисный заказ",
+                pizzas = new List<PizzaInOrder>
+                {
+                    new PizzaInOrder
+                    {
+                        pizzaA = pizza[0],
+                        pizzaB = pizza[1],
+                        countPizza = 3,
+                    }
+                },
+                delayed = null
+            };
+            orders = new BindingList<Order> { order1, order2, order3 };
             dataGridView1.DataSource = ingredientsSource;
             dataGridView2.DataSource = mainSource;
             dataGridView3.DataSource = borderSource;
@@ -319,7 +129,12 @@ namespace WinFormsApp1
             ((ListBox)checkedListBoxBorder).DataSource = borderSource;
             ((ListBox)checkedListBoxIngredients).DataSource = ingredientsSource;
             ((ListBox)checkedListBoxPizza).DataSource = pizza;
-            ((ListBox)checkedListBoxForPizzaInOrder).DataSource = pizza;
+            ((ListBox)checkedListBoxForBorderSort).DataSource = pizza;
+            ((ListBox)checkedListBoxForPizzaInOrder).DataSource = tempiPizzas;
+            ((ListBox)checkedListBoxForPizzaInOrder2).DataSource = tempiPizzas;
+            ((ListBox)checkedListBoxFlitPizza1).DataSource = ingredientsSource;
+            ((ListBox)checkedListBoxFlitPizza2).DataSource = mainSource;
+            ((ListBox)checkedListBoxFlitPizza3).DataSource = borderSource;
             comboBoxForSizePizza.DataSource = Enum.GetValues(typeof(PizzaSize));
             comboBoxForSizePizza.SelectedIndex = 1;
             comboBoxPizzaMain.DataSource = mainSource;
@@ -329,7 +144,8 @@ namespace WinFormsApp1
             pizzaSource.DataSource = pizza;
             orderSource.DataSource = orders;
             pizzaInOrderSource.DataSource = pizzasInOrder;
-            temp.Text = pizzaMain.Count.ToString();
+            comboBoxForPizzaMainInOrder.DataSource = mainSource;
+            //temp.Text = pizzaMain.Count.ToString();
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -361,7 +177,7 @@ namespace WinFormsApp1
                 textCostBorder.Clear();
                 foreach (var pizzaCheck in checkedListBoxPizza.CheckedItems)
                 {
-                    temp.Text = "123123";
+                    //temp.Text = "123123";
                     Pizza pizza = (Pizza)pizzaCheck;
                     pizza.borderList.Add(borders[borders.Count - 1]);
                 }
@@ -379,7 +195,13 @@ namespace WinFormsApp1
                     break;
                 case 2:
                     break;
-
+                case 3:
+                    break;
+                case 4:
+                    tempiPizzas.Clear();
+                    foreach (var p in pizza)
+                        tempiPizzas.Add(p);
+                    break;
             }
         }
 
@@ -399,7 +221,7 @@ namespace WinFormsApp1
             {
                 pizzaAdd.ingridientsPizza.Add((Ingridient)ingredient);
             }
-            pizzaAdd.namePizza = textBoxNamePizza.Text;
+            pizzaAdd.name = textBoxNamePizza.Text;
             pizza.Add(pizzaAdd);
         }
 
@@ -571,6 +393,10 @@ namespace WinFormsApp1
                     tempForEdit.borderList.Add((Border)checkedListBoxBordersList.Items[i]);
                     checkedListBoxBordersList.SetItemChecked(i, false);
                 }
+                else
+                {
+                    checkedListBoxBordersList.SetItemChecked(i, false);
+                }
             }
             for (int i = 0; i < checkedListBoxBorder.Items.Count; i++)
             {
@@ -578,7 +404,6 @@ namespace WinFormsApp1
                 {
                     tempForEdit.pizzaBorder = (Border)checkedListBoxBorder.Items[i];
                     checkedListBoxBorder.SetItemChecked(i, false);
-                    break;
                 }
             }
             tempForEdit.pizzasMain = pizzaMain[comboBoxPizzaMain.SelectedIndex];
@@ -590,25 +415,27 @@ namespace WinFormsApp1
                     checkedListBoxIngredients.SetItemChecked(i, false);
                 }
             }
-            SetInvisibleForEdit();
+            SetVisibleForEdit();
         }
 
         void SetVisibleForEdit()
         {
-            buttonSaveChanges.Visible = true;
-            button6.Visible = false;
-            buttonDeletePizza.Visible = false;
-            textBoxNamePizza.Visible = false;
-            label8.Visible = false;
-        }
-
-        void SetInvisibleForEdit()
-        {
-            buttonSaveChanges.Visible = false;
-            button6.Visible = true;
-            buttonDeletePizza.Visible = true;
-            textBoxNamePizza.Visible = true;
-            label8.Visible = true;
+            buttonSaveChanges.Visible = !buttonSaveChanges.Visible;
+            button6.Visible = !button6.Visible;
+            buttonDeletePizza.Visible = !buttonDeletePizza.Visible;
+            textBoxNamePizza.Visible = !textBoxNamePizza.Visible;
+            label8.Visible = !label8.Visible;
+            textBoxFiltPizza1.Visible = !textBoxFiltPizza1.Visible;
+            textBoxFiltPizza2.Visible = !textBoxFiltPizza2.Visible;
+            label15.Visible = !label15.Visible;
+            label16.Visible = !label16.Visible;
+            button9.Visible = !button9.Visible;
+            label29.Visible = !label29.Visible;
+            label30.Visible = !label30.Visible;
+            label31.Visible = !label31.Visible;
+            checkedListBoxFlitPizza1.Visible = !checkedListBoxFlitPizza1.Visible;
+            checkedListBoxFlitPizza2.Visible = !checkedListBoxFlitPizza2.Visible;
+            checkedListBoxFlitPizza3.Visible = !checkedListBoxFlitPizza3.Visible;
         }
 
         private void tabControl1_Selecting(object sender, TabControlCancelEventArgs e)
@@ -713,38 +540,27 @@ namespace WinFormsApp1
         private void buttonForAddInOrder_Click(object sender, EventArgs e)
         {
             PizzaInOrder pizzaT = new PizzaInOrder();
-            if (isCombo)
+            for (int i = 0; i < checkedListBoxForPizzaInOrder.Items.Count; i++)
             {
-                for(int i = 0; i < checkedListBoxForPizzaInOrder.Items.Count;i++)
+                if (checkedListBoxForPizzaInOrder.GetItemChecked(i))
                 {
-                    if (checkedListBoxForPizzaInOrder.GetItemChecked(i))
-                    {
-                        pizzaT.pizzaA = pizza[i];
-                        checkedListBoxForPizzaInOrder.SetItemChecked(i, false);
-                        break;
-                    }
-                }
-                for (int i = 0; i < checkedListBoxForPizzaInOrder.Items.Count; i++)
-                {
-                    if (checkedListBoxForPizzaInOrder.GetItemChecked(i))
-                    {
-                        pizzaT.pizzaB = pizza[i];
-                        checkedListBoxForPizzaInOrder.SetItemChecked(i, false);
-                        break;
-                    }
+                    pizzaT.pizzaA = pizza[i];
+                    pizzaT.pizzaA.pizzaBorder = pizzaT.pizzaA.borderList[comboBoxForPizzaA.SelectedIndex];
+                    pizzaT.borderA = pizzaT.pizzaA.pizzaBorder;
+                    checkedListBoxForPizzaInOrder.SetItemChecked(i, false);
                 }
             }
-            else
+            for (int i = 0; i < checkedListBoxForPizzaInOrder2.Items.Count; i++)
             {
-                for (int i = 0; i < checkedListBoxForPizzaInOrder.Items.Count; i++)
+                if (checkedListBoxForPizzaInOrder2.GetItemChecked(i))
                 {
-                    if (checkedListBoxForPizzaInOrder.GetItemChecked(i))
-                    {
-                        pizzaT.pizzaA = pizza[i];
-                        checkedListBoxForPizzaInOrder.SetItemChecked(i, false);
-                    }
+                    pizzaT.pizzaB = pizza[i];
+                    pizzaT.pizzaB.pizzaBorder = pizzaT.pizzaB.borderList[comboBoxForPizzaB.SelectedIndex];
+                    pizzaT.borderB = pizzaT.pizzaB.pizzaBorder;
+                    checkedListBoxForPizzaInOrder.SetItemChecked(i, false);
                 }
             }
+            pizzaT.pizzaMain = pizzaMain[comboBoxForPizzaMainInOrder.SelectedIndex];
             pizzaT.isDoubleIngredients = checkBoxForDouble.Checked;
             checkBoxForDouble.Checked = false;
             pizzaT.sizePizza = (PizzaSize)comboBoxForSizePizza.SelectedIndex;
@@ -757,41 +573,156 @@ namespace WinFormsApp1
 
         private void checkedListBoxForPizzaInOrder_ItemCheck(object sender, ItemCheckEventArgs e)
         {
-            if (!isCombo)
+            CheckOnlyOne(e, checkedListBoxForPizzaInOrder);
+            var pizzaA = (Pizza)checkedListBoxForPizzaInOrder.Items[e.Index];
+            comboBoxForPizzaA.DataSource = null;
+            comboBoxForPizzaA.DataSource = pizzaA.borderList;
+        }
+
+        private void checkedListBoxForPizzaInOrder2_ItemCheck(object sender, ItemCheckEventArgs e)
+        {
+            CheckOnlyOne(e, checkedListBoxForPizzaInOrder2);
+            var pizzaA = (Pizza)checkedListBoxForPizzaInOrder2.Items[e.Index];
+            comboBoxForPizzaB.DataSource = null;
+            comboBoxForPizzaB.DataSource = pizzaA.borderList;
+        }
+
+        private void buttonOpenForm_Click(object sender, EventArgs e)
+        {
+            using (var f = new FormEditPizza())
             {
-                for (int i = 0; i < checkedListBoxForPizzaInOrder.Items.Count; i++)
+                if (f.ShowDialog(this) == DialogResult.OK && f.resultPizza != null)
                 {
-                    if (i != e.Index)
-                    {
-                        checkedListBoxForPizzaInOrder.SetItemChecked(i, false);
-                    }
-                }
-            }
-            else
-            {
-                if (e.NewValue == CheckState.Checked && checkedListBoxForPizzaInOrder.CheckedItems.Count >= 2)
-                {
-                    e.NewValue = CheckState.Unchecked;
+                    Pizza p = f.resultPizza;
+                    tempiPizzas.Add(p);
                 }
             }
         }
 
-        private void checkedListBoxForPizzaInOrder_SelectedIndexChanged(object sender, EventArgs e)
+        private void button4_Click(object sender, EventArgs e)
         {
-
-        }
-
-        private void checkBoxIsCombo_CheckedChanged(object sender, EventArgs e)
-        {
-            if (checkBoxIsCombo.Checked)
+            Order newOrder = new Order();
+            newOrder.pizzas = pizzasInOrder.ToList();
+            newOrder.comment = textBoxComment.Text;
+            if (checkBox1.Checked)
             {
-                isCombo = true;
+                newOrder.delayed = dateTimePicker1.Value;
             }
             else
             {
-                isCombo = false;
+                newOrder.delayed = null;
             }
+            orders.Add(newOrder);
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            dateTimePicker1.Visible = checkBox1.Checked;
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            string nameText = textBoxNameIngrFilter.Text;
+            int minPrice;
+            bool hasPrice = int.TryParse(textBoxPriceFilter.Text, out minPrice);
+            if (!hasPrice) { minPrice = 0; }
+            var filtered = FilterHelper.FilterByPriceName(ingridients, minPrice, nameText);
+            dataGridView1.DataSource = filtered;
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            string nameText = textBoxPizzaMainFilterName.Text;
+            int minPrice;
+            bool hasPrice = int.TryParse(textBoxPizzaMainFilterPrice.Text, out minPrice);
+            if (!hasPrice) { minPrice = 0; }
+            var filtered = FilterHelper.FilterByPriceName(pizzaMain, minPrice, nameText);
+            dataGridView2.DataSource = filtered;
+        }
+
+        private void button8_Click(object sender, EventArgs e)
+        {
+            List<Pizza> pizzas = new List<Pizza>();
+            foreach (var piz in checkedListBoxForBorderSort.CheckedItems)
+            {
+                pizzas.Add((Pizza)piz);
+            }
+            var usedBorders = borders.Where(b => pizzas.Any(p => p.borderList.Contains(b))).ToList();
+            int minPrice;
+            bool hasPrice = int.TryParse(textBoxPizzaMainFilterPrice.Text, out minPrice);
+            if (!hasPrice) { minPrice = 0; }
+            var finBord = FilterHelper.FilterByPriceName(usedBorders, minPrice, textBoxBordFiltName.Text);
+            dataGridView3.DataSource = finBord;
+        }
+
+        private void button9_Click(object sender, EventArgs e)
+        {
+            var query = pizza.AsEnumerable();
+            if (checkedListBoxFlitPizza2.SelectedIndex >= 0 && checkedListBoxFlitPizza2.GetItemChecked(checkedListBoxFlitPizza2.SelectedIndex) ? true : false)
+            {
+                var selectedMain = (PizzaMain)checkedListBoxFlitPizza2.Items[checkedListBoxFlitPizza2.SelectedIndex];
+                query = query.Where(p => p.pizzasMain == selectedMain);
+            }
+
+            if (checkedListBoxFlitPizza3.SelectedIndex >= 0 && checkedListBoxFlitPizza3.GetItemChecked(checkedListBoxFlitPizza3.SelectedIndex) ? true : false)
+            {
+                var selectedBorder = (Border)checkedListBoxFlitPizza3.Items[checkedListBoxFlitPizza3.SelectedIndex];
+                query = query.Where(p => p.pizzaBorder == selectedBorder);
+            }
+
+            var selectedIngr = checkedListBoxFlitPizza1.CheckedItems.Cast<Ingridient>().ToList();
+            label16.Text = query.Count().ToString();
+
+            if (selectedIngr.Count > 0)
+            {
+                query = query.Where(p => p.ingridientsPizza.Any(i => selectedIngr.Contains(i)));
+            }
+            int minPrice;
+            if (int.TryParse(textBoxFiltPizza2.Text, out minPrice))
+            {
+                query = query.Where(p => p.price >= minPrice);
+            }
+
+            var nameText = textBoxFiltPizza1.Text.ToLower();
+            if (!string.IsNullOrWhiteSpace(nameText))
+            {
+                nameText = nameText.ToLower();
+                query = query.Where(p => p.name.ToLower().Contains(nameText));
+            }
+            var finPizza = query.ToList();
+            dataGridView4.DataSource = finPizza;
+        }
+
+        void CheckOnlyOne(ItemCheckEventArgs e, CheckedListBox checkList)
+        {
+            for (int i = 0; i < checkList.Items.Count; i++)
+            {
+                if (i != e.Index)
+                {
+                    checkList.SetItemChecked(i, false);
+                }
+            }
+        }
+
+        private void buttonOpenFilt_Click(object sender, EventArgs e)
+        {
+            var f = new Form3();
+            f.ShowDialog(this);
+        }
+
+        private void checkedListBoxFlitPizza1_ItemCheck(object sender, ItemCheckEventArgs e)
+        {
+            CheckOnlyOne(e, checkedListBoxFlitPizza1);
+        }
+
+        private void checkedListBoxFlitPizza2_ItemCheck(object sender, ItemCheckEventArgs e)
+        {
+            CheckOnlyOne(e, checkedListBoxFlitPizza2);
+        }
+
+        private void checkedListBoxFlitPizza3_ItemCheck(object sender, ItemCheckEventArgs e)
+        {
+            CheckOnlyOne(e, checkedListBoxFlitPizza3);
         }
     }
 }
- 
